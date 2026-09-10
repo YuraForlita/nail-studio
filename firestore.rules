@@ -1,0 +1,16 @@
+rules_version = '2';
+
+// Ці правила потрібно вставити в Firebase Console → Firestore Database → Rules
+// (або задеплоїти через Firebase CLI: firebase deploy --only firestore:rules).
+//
+// Логіка: кожен користувач має власне "дерево" даних users/{uid}/... і може
+// читати/писати ТІЛЬКИ те, що лежить під його власним uid. Ніхто інший, навіть
+// знаючи адресу проєкту, не може прочитати чи змінити ці дані без входу в акаунт
+// саме цього власника.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
