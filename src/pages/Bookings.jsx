@@ -1,7 +1,29 @@
 import { useMemo, useState } from 'react'
-import { Plus, Trash2, Pencil, Check, X as XIcon, Clock, Phone, ChevronLeft, ChevronRight } from 'lucide-react'
+import {
+  Plus,
+  Trash2,
+  Pencil,
+  Check,
+  Clock,
+  ChevronLeft,
+  ChevronRight,
+  Cake,
+  TriangleAlert,
+} from 'lucide-react'
 import { useCollection } from '../hooks/useCollection'
-import { weekDays, addWeeks, isSameDay, toDateInputValue, fmtDate } from '../utils/date'
+import {
+  weekDays,
+  monthGrid,
+  addWeeks,
+  addMonths,
+  isSameDay,
+  isSameMonth,
+  isToday,
+  toDateInputValue,
+  fmtDate,
+  fmtShort,
+  parseISO,
+} from '../utils/date'
 import { fmtMoney } from '../utils/money'
 import Sheet from '../components/Sheet'
 
@@ -22,6 +44,7 @@ export default function Bookings() {
 
   const [anchor, setAnchor] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState(new Date())
+  const [viewMode, setViewMode] = useState('week') // week | month
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm(toDateInputValue(new Date())))
@@ -29,8 +52,40 @@ export default function Bookings() {
   const [newClientName, setNewClientName] = useState('')
 
   const days = useMemo(() => weekDays(anchor), [anchor])
+  const daysInMonth = useMemo(() => monthGrid(anchor), [anchor])
 
   const shiftWeek = (dir) => setAnchor((a) => addWeeks(a, dir))
+  const shiftMonth = (dir) => setAnchor((a) => addMonths(a, dir))
+  const goToday = () => {
+    const t = new Date()
+    setAnchor(t)
+    setSelectedDay(t)
+  }
+
+  const countsByDate = useMemo(() => {
+    const map = {}
+    bookings.forEach((b) => {
+      if (b.status === 'cancelled') return
+      map[b.date] = (map[b.date] || 0) + 1
+    })
+    return map
+  }, [bookings])
+
+  const upcomingBirthdays = useMemo(() => {
+    const today = new Date()
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    return clients
+      .filter((c) => c.birthday)
+      .map((c) => {
+        const bd = parseISO(c.birthday)
+        let next = new Date(today.getFullYear(), bd.getMonth(), bd.getDate())
+        if (next < todayStart) next = new Date(today.getFullYear() + 1, bd.getMonth(), bd.getDate())
+        const daysUntil = Math.round((next - todayStart) / 86400000)
+        return { ...c, nextBirthday: next, daysUntil }
+      })
+      .filter((c) => c.daysUntil <= 14)
+      .sort((a, b) => a.daysUntil - b.daysUntil)
+  }, [clients])
 
   const dayBookings = useMemo(() => {
     return bookings
@@ -76,8 +131,20 @@ export default function Bookings() {
   const chosenServices = services.filter((s) => form.serviceIds.includes(s.id))
   const total = chosenServices.reduce((sum, s) => sum + Number(s.price || 0), 0)
 
+  const conflict = useMemo(() => {
+    if (!form.date || !form.time) return null
+    return bookings.find(
+      (b) =>
+        b.date === form.date &&
+        b.time === form.time &&
+        b.status !== 'cancelled' &&
+        (!editing || b.id !== editing.id)
+    )
+  }, [bookings, form.date, form.time, editing])
+
   const submit = async (e) => {
     e.preventDefault()
+    if (conflict) return
     let clientId = form.clientId
     let clientName = form.clientName
 
@@ -123,52 +190,142 @@ export default function Bookings() {
         </button>
       </div>
 
-      {/* Тижневий стрічковий вибір дня */}
-      <div className="flex items-center gap-1.5 mb-5">
-        <button
-          onClick={() => shiftWeek(-1)}
-          className="p-2 rounded-md text-inkSoft hover:bg-card hover:text-wine border border-line shrink-0"
-          title="Попередній тиждень"
-        >
-          <ChevronLeft size={16} />
-        </button>
-        <div className="flex gap-1.5 overflow-x-auto pb-1 min-w-0 flex-1">
-          {days.map((d) => {
-            const active = isSameDay(d, selectedDay)
-            const hasBookings = bookings.some((b) => b.date === toDateInputValue(d) && b.status !== 'cancelled')
-            return (
-              <button
-                key={d.toISOString()}
-                onClick={() => setSelectedDay(d)}
-                className={`flex flex-col items-center justify-center w-12 h-16 rounded-md shrink-0 border transition-colors ${
-                  active ? 'bg-wine text-shell border-wine' : 'bg-card text-ink border-line hover:border-wine/40'
-                }`}
-              >
-                <span className="text-[10px] uppercase opacity-70">{fmtDate(d, 'EEEEEE')}</span>
-                <span className="font-display text-lg leading-none mt-1">{fmtDate(d, 'd')}</span>
-                <span className={`w-1 h-1 rounded-full mt-1 ${hasBookings ? (active ? 'bg-caramel-light' : 'bg-wine') : 'bg-transparent'}`} />
-              </button>
-            )
-          })}
+      {upcomingBirthdays.length > 0 && (
+        <div className="card p-3 mb-5 flex items-start gap-2.5">
+          <Cake size={16} className="text-caramel shrink-0 mt-0.5" />
+          <div className="min-w-0 flex-1">
+            <p className="text-inkSoft text-xs mb-1">Дні народження найближчим часом</p>
+            <p className="text-sm truncate">
+              {upcomingBirthdays
+                .slice(0, 3)
+                .map((c) => `${c.name} — ${fmtShort(c.nextBirthday)}${c.daysUntil === 0 ? ' (сьогодні!)' : ''}`)
+                .join(' · ')}
+            </p>
+          </div>
         </div>
-        <button
-          onClick={() => shiftWeek(1)}
-          className="p-2 rounded-md text-inkSoft hover:bg-card hover:text-wine border border-line shrink-0"
-          title="Наступний тиждень"
-        >
-          <ChevronRight size={16} />
-        </button>
-        <button
-          className="text-xs text-inkSoft hover:text-wine px-2 py-2 shrink-0"
-          onClick={() => {
-            const t = new Date()
-            setAnchor(t)
-            setSelectedDay(t)
-          }}
-        >
-          Сьогодні
-        </button>
+      )}
+
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs text-inkSoft">
+          {viewMode === 'month' ? fmtDate(anchor, 'LLLL yyyy') : 'Тижневий перегляд'}
+        </span>
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => setViewMode('week')}
+            className={`px-3 py-1 rounded-full text-xs border ${
+              viewMode === 'week' ? 'bg-wine text-cream border-wine' : 'border-line text-inkSoft'
+            }`}
+          >
+            Тиждень
+          </button>
+          <button
+            onClick={() => setViewMode('month')}
+            className={`px-3 py-1 rounded-full text-xs border ${
+              viewMode === 'month' ? 'bg-wine text-cream border-wine' : 'border-line text-inkSoft'
+            }`}
+          >
+            Місяць
+          </button>
+        </div>
       </div>
+
+      {viewMode === 'week' ? (
+        /* Тижневий стрічковий вибір дня */
+        <div className="flex items-center gap-1.5 mb-5">
+          <button
+            onClick={() => shiftWeek(-1)}
+            className="p-2 rounded-md text-inkSoft hover:bg-card hover:text-wine border border-line shrink-0"
+            title="Попередній тиждень"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <div className="flex gap-1.5 overflow-x-auto pb-1 min-w-0 flex-1">
+            {days.map((d) => {
+              const active = isSameDay(d, selectedDay)
+              const hasBookings = bookings.some((b) => b.date === toDateInputValue(d) && b.status !== 'cancelled')
+              return (
+                <button
+                  key={d.toISOString()}
+                  onClick={() => setSelectedDay(d)}
+                  className={`flex flex-col items-center justify-center w-12 h-16 rounded-md shrink-0 border transition-colors ${
+                    active ? 'bg-wine text-cream border-wine' : 'bg-card text-ink border-line hover:border-wine/40'
+                  }`}
+                >
+                  <span className="text-[10px] uppercase opacity-70">{fmtDate(d, 'EEEEEE')}</span>
+                  <span className="font-display text-lg leading-none mt-1">{fmtDate(d, 'd')}</span>
+                  <span className={`w-1 h-1 rounded-full mt-1 ${hasBookings ? (active ? 'bg-caramel-light' : 'bg-wine') : 'bg-transparent'}`} />
+                </button>
+              )
+            })}
+          </div>
+          <button
+            onClick={() => shiftWeek(1)}
+            className="p-2 rounded-md text-inkSoft hover:bg-card hover:text-wine border border-line shrink-0"
+            title="Наступний тиждень"
+          >
+            <ChevronRight size={16} />
+          </button>
+          <button className="text-xs text-inkSoft hover:text-wine px-2 py-2 shrink-0" onClick={goToday}>
+            Сьогодні
+          </button>
+        </div>
+      ) : (
+        /* Місячний календар */
+        <div className="mb-5">
+          <div className="flex items-center gap-1.5 mb-2">
+            <button
+              onClick={() => shiftMonth(-1)}
+              className="p-2 rounded-md text-inkSoft hover:bg-card hover:text-wine border border-line shrink-0"
+              title="Попередній місяць"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span className="flex-1 text-center font-display text-base capitalize">{fmtDate(anchor, 'LLLL yyyy')}</span>
+            <button
+              onClick={() => shiftMonth(1)}
+              className="p-2 rounded-md text-inkSoft hover:bg-card hover:text-wine border border-line shrink-0"
+              title="Наступний місяць"
+            >
+              <ChevronRight size={16} />
+            </button>
+            <button className="text-xs text-inkSoft hover:text-wine px-2 py-2 shrink-0" onClick={goToday}>
+              Сьогодні
+            </button>
+          </div>
+          <div className="grid grid-cols-7 gap-1 mb-1">
+            {days.map((d) => (
+              <span key={d.toISOString()} className="text-center text-[10px] uppercase text-inkSoft/70 py-1">
+                {fmtDate(d, 'EEEEEE')}
+              </span>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {daysInMonth.map((d) => {
+              const active = isSameDay(d, selectedDay)
+              const inMonth = isSameMonth(d, anchor)
+              const count = countsByDate[toDateInputValue(d)] || 0
+              const loadClass =
+                count >= 5 ? 'bg-wine/25' : count >= 3 ? 'bg-wine/15' : count >= 1 ? 'bg-wine/5' : ''
+              return (
+                <button
+                  key={d.toISOString()}
+                  onClick={() => setSelectedDay(d)}
+                  className={`relative aspect-square flex flex-col items-center justify-center rounded-md border text-sm transition-colors ${
+                    active
+                      ? 'bg-wine text-cream border-wine'
+                      : `border-line hover:border-wine/40 ${inMonth ? 'text-ink' : 'text-inkSoft/40'} ${loadClass}`
+                  }`}
+                >
+                  <span className={isToday(d) && !active ? 'font-bold text-wine' : ''}>{fmtDate(d, 'd')}</span>
+                  {count > 0 && (
+                    <span className={`text-[9px] mt-0.5 ${active ? 'text-cream/80' : 'text-inkSoft'}`}>{count}</span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {dayBookings.length > 0 && (
         <div className="flex items-center justify-between mb-3 px-1">
@@ -229,14 +386,14 @@ export default function Bookings() {
               <button
                 type="button"
                 onClick={() => setClientMode('existing')}
-                className={`btn text-xs flex-1 ${clientMode === 'existing' ? 'bg-wine text-shell' : 'bg-shell text-inkSoft'}`}
+                className={`btn text-xs flex-1 ${clientMode === 'existing' ? 'bg-wine text-cream' : 'bg-shell text-inkSoft'}`}
               >
                 Обрати
               </button>
               <button
                 type="button"
                 onClick={() => setClientMode('new')}
-                className={`btn text-xs flex-1 ${clientMode === 'new' ? 'bg-wine text-shell' : 'bg-shell text-inkSoft'}`}
+                className={`btn text-xs flex-1 ${clientMode === 'new' ? 'bg-wine text-cream' : 'bg-shell text-inkSoft'}`}
               >
                 Нова
               </button>
@@ -292,6 +449,15 @@ export default function Bookings() {
             </div>
           </div>
 
+          {conflict && (
+            <div className="flex items-start gap-2 text-xs text-wine-dark bg-wine/5 rounded-md px-3 py-2.5">
+              <TriangleAlert size={14} className="shrink-0 mt-0.5" />
+              <span>
+                На {form.time} вже є запис: <strong>{conflict.clientName}</strong>. Обери інший час.
+              </span>
+            </div>
+          )}
+
           <div>
             <label className="field-label">Послуги ({fmtMoney(total)})</label>
             {services.length === 0 && (
@@ -313,7 +479,7 @@ export default function Bookings() {
                           checked ? 'bg-wine border-wine' : 'border-line'
                         }`}
                       >
-                        {checked && <Check size={11} className="text-shell" />}
+                        {checked && <Check size={11} className="text-cream" />}
                       </span>
                       {s.name}
                     </span>
@@ -335,7 +501,7 @@ export default function Bookings() {
             />
           </div>
 
-          <button type="submit" className="btn-primary w-full">
+          <button type="submit" disabled={!!conflict} className="btn-primary w-full">
             {editing ? 'Зберегти зміни' : 'Зберегти запис'} — {fmtMoney(total)}
           </button>
         </form>

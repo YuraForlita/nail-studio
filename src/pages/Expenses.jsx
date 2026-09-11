@@ -59,7 +59,7 @@ export default function Expenses() {
             key={c}
             onClick={() => setFilterCat(c)}
             className={`px-3 py-1.5 rounded-full text-xs shrink-0 border ${
-              filterCat === c ? 'bg-wine text-shell border-wine' : 'border-line text-inkSoft'
+              filterCat === c ? 'bg-wine text-cream border-wine' : 'border-line text-inkSoft'
             }`}
           >
             {c}

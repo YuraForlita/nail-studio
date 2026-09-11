@@ -1,7 +1,8 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { CalendarDays, Users, Sparkles, Receipt, ChartNoAxesColumn, LogOut, WifiOff } from 'lucide-react'
+import { CalendarDays, Users, Sparkles, Receipt, ChartNoAxesColumn, Trash2, LogOut, WifiOff, Sun, Moon } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useEffect, useState } from 'react'
+import { useTheme } from '../contexts/ThemeContext'
 
 const NAV = [
   { to: '/', label: 'Записи', icon: CalendarDays, end: true },
@@ -9,6 +10,7 @@ const NAV = [
   { to: '/services', label: 'Послуги', icon: Sparkles },
   { to: '/expenses', label: 'Витрати', icon: Receipt },
   { to: '/reports', label: 'Звіти', icon: ChartNoAxesColumn },
+  { to: '/trash', label: 'Кошик', icon: Trash2 },
 ]
 
 function useOnline() {
@@ -29,6 +31,7 @@ function useOnline() {
 export default function Layout() {
   const { logout } = useAuth()
   const online = useOnline()
+  const { theme, toggleTheme } = useTheme()
 
   return (
     <div className="min-h-screen md:flex">
@@ -50,7 +53,7 @@ export default function Layout() {
               end={end}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                  isActive ? 'bg-wine text-shell' : 'text-inkSoft hover:bg-shell'
+                  isActive ? 'bg-wine text-cream' : 'text-inkSoft hover:bg-shell'
                 }`
               }
             >
@@ -65,6 +68,10 @@ export default function Layout() {
               <WifiOff size={14} /> Офлайн — зміни синхронізуються пізніше
             </div>
           )}
+          <button onClick={toggleTheme} className="btn-ghost w-full justify-start mb-1">
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            {theme === 'dark' ? 'Світла тема' : 'Темна тема'}
+          </button>
           <button onClick={logout} className="btn-ghost w-full justify-start">
             <LogOut size={16} /> Вийти
           </button>
@@ -74,7 +81,7 @@ export default function Layout() {
       {/* Контент */}
       <div className="flex-1 min-w-0">
         {!online && (
-          <div className="md:hidden flex items-center justify-center gap-2 px-3 py-1.5 text-xs text-shell bg-wine">
+          <div className="md:hidden flex items-center justify-center gap-2 px-3 py-1.5 text-xs text-cream bg-wine">
             <WifiOff size={13} /> Офлайн-режим
           </div>
         )}
@@ -82,6 +89,16 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Перемикач теми — мобільний */}
+      <button
+        onClick={toggleTheme}
+        className="md:hidden fixed right-4 bottom-20 z-30 p-3 rounded-full bg-card border border-line shadow-soft text-inkSoft"
+        style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
+        title="Перемкнути тему"
+      >
+        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+      </button>
 
       {/* Нижнє меню — мобільний */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 bg-card border-t border-line flex items-stretch z-30 pb-[env(safe-area-inset-bottom)]">

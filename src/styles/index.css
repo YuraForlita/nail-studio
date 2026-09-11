@@ -2,10 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-shell: 243 236 231;
+  --color-ink: 43 35 32;
+  --color-ink-soft: 91 79 73;
+  --color-wine: 122 46 60;
+  --color-wine-dark: 92 33 48;
+  --color-wine-light: 156 74 89;
+  --color-caramel: 201 143 101;
+  --color-caramel-light: 228 190 153;
+  --color-sage: 92 122 94;
+  --color-line: 228 217 208;
+  --color-card: 255 253 251;
+}
+
+.dark {
+  --color-shell: 24 19 17;
+  --color-ink: 240 231 225;
+  --color-ink-soft: 176 161 151;
+  --color-wine: 199 99 115;
+  --color-wine-dark: 232 150 163;
+  --color-wine-light: 217 173 181;
+  --color-caramel: 224 168 128;
+  --color-caramel-light: 240 214 189;
+  --color-sage: 138 168 140;
+  --color-line: 58 47 42;
+  --color-card: 35 28 25;
+}
+
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
     overflow-x: hidden;
+  }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
   }
   body {
     @apply bg-shell text-ink font-sans antialiased;
@@ -33,7 +67,7 @@
     @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-40 disabled:pointer-events-none;
   }
   .btn-primary {
-    @apply btn bg-wine text-shell hover:bg-wine-dark;
+    @apply btn bg-wine text-cream hover:bg-wine-dark;
   }
   .btn-ghost {
     @apply btn bg-transparent text-inkSoft hover:bg-line/60;

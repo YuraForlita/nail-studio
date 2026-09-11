@@ -80,7 +80,7 @@ export default function Reports() {
             key={p.key}
             onClick={() => setPeriod(p.key)}
             className={`px-3 py-1.5 rounded-full text-xs border ${
-              period === p.key ? 'bg-wine text-shell border-wine' : 'border-line text-inkSoft'
+              period === p.key ? 'bg-wine text-cream border-wine' : 'border-line text-inkSoft'
             }`}
           >
             {p.label}
