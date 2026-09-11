@@ -118,7 +118,7 @@ export default function Expenses() {
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="min-w-0">
               <label className="field-label">Сума, ₴</label>
               <input
                 required
@@ -129,7 +129,7 @@ export default function Expenses() {
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="field-label">Дата</label>
               <input
                 type="date"

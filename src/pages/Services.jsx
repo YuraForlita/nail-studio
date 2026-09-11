@@ -85,7 +85,7 @@ export default function Services() {
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="min-w-0">
               <label className="field-label">Ціна, ₴</label>
               <input
                 required
@@ -97,7 +97,7 @@ export default function Services() {
                 placeholder="600"
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="field-label">Тривалість, хв</label>
               <input
                 type="number"

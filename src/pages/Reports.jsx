@@ -88,18 +88,18 @@ export default function Reports() {
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="card p-4">
-          <p className="text-xs text-inkSoft mb-1">Дохід</p>
-          <p className="font-display text-xl text-sage">{fmtMoney(income)}</p>
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
+        <div className="card p-3 sm:p-4 min-w-0">
+          <p className="text-xs text-inkSoft mb-1 truncate">Дохід</p>
+          <p className="font-display text-base sm:text-xl text-sage truncate">{fmtMoney(income)}</p>
         </div>
-        <div className="card p-4">
-          <p className="text-xs text-inkSoft mb-1">Витрати</p>
-          <p className="font-display text-xl text-wine-dark">{fmtMoney(expenseTotal)}</p>
+        <div className="card p-3 sm:p-4 min-w-0">
+          <p className="text-xs text-inkSoft mb-1 truncate">Витрати</p>
+          <p className="font-display text-base sm:text-xl text-wine-dark truncate">{fmtMoney(expenseTotal)}</p>
         </div>
-        <div className="card p-4">
-          <p className="text-xs text-inkSoft mb-1">Чистий прибуток</p>
-          <p className="font-display text-xl text-wine">{fmtMoney(net)}</p>
+        <div className="card p-3 sm:p-4 min-w-0">
+          <p className="text-xs text-inkSoft mb-1 truncate">Прибуток</p>
+          <p className="font-display text-base sm:text-xl text-wine truncate">{fmtMoney(net)}</p>
         </div>
       </div>
 

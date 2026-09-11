@@ -2,6 +2,7 @@ import {
   format,
   startOfWeek,
   addDays,
+  addWeeks,
   isSameDay,
   parseISO,
   startOfMonth,
@@ -22,7 +23,7 @@ export const weekDays = (anchor = new Date()) => {
   return Array.from({ length: 7 }, (_, i) => addDays(start, i))
 }
 
-export { isSameDay, startOfMonth, endOfMonth, startOfYear, isWithinInterval, parseISO }
+export { isSameDay, addWeeks, startOfMonth, endOfMonth, startOfYear, isWithinInterval, parseISO }
 
 export const toDateInputValue = (d) => format(d, 'yyyy-MM-dd')
 export const toTimeInputValue = (d) => format(d, 'HH:mm')

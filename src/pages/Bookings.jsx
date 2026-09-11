@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { Plus, Trash2, Check, X as XIcon, Clock, Phone } from 'lucide-react'
+import { Plus, Trash2, Pencil, Check, X as XIcon, Clock, Phone, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCollection } from '../hooks/useCollection'
-import { weekDays, isSameDay, toDateInputValue, fmtDate } from '../utils/date'
+import { weekDays, addWeeks, isSameDay, toDateInputValue, fmtDate } from '../utils/date'
 import { fmtMoney } from '../utils/money'
 import Sheet from '../components/Sheet'
 
@@ -23,11 +23,14 @@ export default function Bookings() {
   const [anchor, setAnchor] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState(new Date())
   const [open, setOpen] = useState(false)
+  const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm(toDateInputValue(new Date())))
   const [clientMode, setClientMode] = useState('existing') // existing | new
   const [newClientName, setNewClientName] = useState('')
 
   const days = useMemo(() => weekDays(anchor), [anchor])
+
+  const shiftWeek = (dir) => setAnchor((a) => addWeeks(a, dir))
 
   const dayBookings = useMemo(() => {
     return bookings
@@ -40,7 +43,24 @@ export default function Bookings() {
     .reduce((sum, b) => sum + (b.total || 0), 0)
 
   const openNew = () => {
+    setEditing(null)
     setForm(emptyForm(toDateInputValue(selectedDay)))
+    setClientMode('existing')
+    setNewClientName('')
+    setOpen(true)
+  }
+
+  const openEdit = (b) => {
+    setEditing(b)
+    setForm({
+      clientId: b.clientId || '',
+      clientName: b.clientName || '',
+      time: b.time,
+      date: b.date,
+      serviceIds: (b.serviceItems || []).map((s) => s.id),
+      notes: b.notes || '',
+      status: b.status,
+    })
     setClientMode('existing')
     setNewClientName('')
     setOpen(true)
@@ -69,7 +89,7 @@ export default function Bookings() {
     }
     if (!clientId) return
 
-    await add({
+    const payload = {
       clientId,
       clientName,
       date: form.date,
@@ -78,7 +98,10 @@ export default function Bookings() {
       notes: form.notes,
       serviceItems: chosenServices.map((s) => ({ id: s.id, name: s.name, price: Number(s.price) })),
       total,
-    })
+    }
+
+    if (editing) await update(editing.id, payload)
+    else await add(payload)
     setOpen(false)
   }
 
@@ -101,36 +124,50 @@ export default function Bookings() {
       </div>
 
       {/* Тижневий стрічковий вибір дня */}
-      <div className="flex gap-1.5 mb-5 overflow-x-auto pb-1">
-        {days.map((d) => {
-          const active = isSameDay(d, selectedDay)
-          const hasBookings = bookings.some((b) => b.date === toDateInputValue(d) && b.status !== 'cancelled')
-          return (
-            <button
-              key={d.toISOString()}
-              onClick={() => setSelectedDay(d)}
-              className={`flex flex-col items-center justify-center w-12 h-16 rounded-md shrink-0 border transition-colors ${
-                active ? 'bg-wine text-shell border-wine' : 'bg-card text-ink border-line hover:border-wine/40'
-              }`}
-            >
-              <span className="text-[10px] uppercase opacity-70">{fmtDate(d, 'EEEEEE')}</span>
-              <span className="font-display text-lg leading-none mt-1">{fmtDate(d, 'd')}</span>
-              <span className={`w-1 h-1 rounded-full mt-1 ${hasBookings ? (active ? 'bg-caramel-light' : 'bg-wine') : 'bg-transparent'}`} />
-            </button>
-          )
-        })}
-        <div className="flex items-center gap-1 shrink-0 ml-1">
-          <button
-            className="text-xs text-inkSoft hover:text-wine px-2 py-1"
-            onClick={() => {
-              const t = new Date()
-              setAnchor(t)
-              setSelectedDay(t)
-            }}
-          >
-            Сьогодні
-          </button>
+      <div className="flex items-center gap-1.5 mb-5">
+        <button
+          onClick={() => shiftWeek(-1)}
+          className="p-2 rounded-md text-inkSoft hover:bg-card hover:text-wine border border-line shrink-0"
+          title="Попередній тиждень"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <div className="flex gap-1.5 overflow-x-auto pb-1 min-w-0 flex-1">
+          {days.map((d) => {
+            const active = isSameDay(d, selectedDay)
+            const hasBookings = bookings.some((b) => b.date === toDateInputValue(d) && b.status !== 'cancelled')
+            return (
+              <button
+                key={d.toISOString()}
+                onClick={() => setSelectedDay(d)}
+                className={`flex flex-col items-center justify-center w-12 h-16 rounded-md shrink-0 border transition-colors ${
+                  active ? 'bg-wine text-shell border-wine' : 'bg-card text-ink border-line hover:border-wine/40'
+                }`}
+              >
+                <span className="text-[10px] uppercase opacity-70">{fmtDate(d, 'EEEEEE')}</span>
+                <span className="font-display text-lg leading-none mt-1">{fmtDate(d, 'd')}</span>
+                <span className={`w-1 h-1 rounded-full mt-1 ${hasBookings ? (active ? 'bg-caramel-light' : 'bg-wine') : 'bg-transparent'}`} />
+              </button>
+            )
+          })}
         </div>
+        <button
+          onClick={() => shiftWeek(1)}
+          className="p-2 rounded-md text-inkSoft hover:bg-card hover:text-wine border border-line shrink-0"
+          title="Наступний тиждень"
+        >
+          <ChevronRight size={16} />
+        </button>
+        <button
+          className="text-xs text-inkSoft hover:text-wine px-2 py-2 shrink-0"
+          onClick={() => {
+            const t = new Date()
+            setAnchor(t)
+            setSelectedDay(t)
+          }}
+        >
+          Сьогодні
+        </button>
       </div>
 
       {dayBookings.length > 0 && (
@@ -171,15 +208,20 @@ export default function Bookings() {
                 </p>
                 <p className={`text-[11px] mt-1 ${st.text}`}>{st.label}</p>
               </div>
-              <button onClick={() => remove(b.id)} className="p-1.5 text-inkSoft hover:text-wine-dark shrink-0">
-                <Trash2 size={15} />
-              </button>
+              <div className="flex gap-1 shrink-0">
+                <button onClick={() => openEdit(b)} className="p-1.5 text-inkSoft hover:text-wine">
+                  <Pencil size={15} />
+                </button>
+                <button onClick={() => remove(b.id)} className="p-1.5 text-inkSoft hover:text-wine-dark">
+                  <Trash2 size={15} />
+                </button>
+              </div>
             </div>
           )
         })}
       </div>
 
-      <Sheet open={open} onClose={() => setOpen(false)} title="Новий запис">
+      <Sheet open={open} onClose={() => setOpen(false)} title={editing ? 'Редагувати запис' : 'Новий запис'}>
         <form onSubmit={submit} className="space-y-4">
           <div>
             <label className="field-label">Клієнтка</label>
@@ -228,7 +270,7 @@ export default function Bookings() {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="min-w-0">
               <label className="field-label">Дата</label>
               <input
                 type="date"
@@ -238,7 +280,7 @@ export default function Bookings() {
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="field-label">Час</label>
               <input
                 type="time"
@@ -294,7 +336,7 @@ export default function Bookings() {
           </div>
 
           <button type="submit" className="btn-primary w-full">
-            Зберегти запис — {fmtMoney(total)}
+            {editing ? 'Зберегти зміни' : 'Зберегти запис'} — {fmtMoney(total)}
           </button>
         </form>
       </Sheet>
