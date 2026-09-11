@@ -117,7 +117,7 @@ export default function Expenses() {
               placeholder="Гель-лак набір"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="min-w-0">
               <label className="field-label">Сума, ₴</label>
               <input

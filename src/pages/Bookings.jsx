@@ -426,7 +426,7 @@ export default function Bookings() {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="min-w-0">
               <label className="field-label">Дата</label>
               <input
