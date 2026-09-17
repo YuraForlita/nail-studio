@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Cake,
   TriangleAlert,
+  Search,
 } from 'lucide-react'
 import { useCollection } from '../hooks/useCollection'
 import {
@@ -50,6 +51,8 @@ export default function Bookings() {
   const [form, setForm] = useState(emptyForm(toDateInputValue(new Date())))
   const [clientMode, setClientMode] = useState('existing') // existing | new
   const [newClientName, setNewClientName] = useState('')
+  const [clientQuery, setClientQuery] = useState('')
+  const [serviceQuery, setServiceQuery] = useState('')
 
   const days = useMemo(() => weekDays(anchor), [anchor])
   const daysInMonth = useMemo(() => monthGrid(anchor), [anchor])
@@ -102,6 +105,8 @@ export default function Bookings() {
     setForm(emptyForm(toDateInputValue(selectedDay)))
     setClientMode('existing')
     setNewClientName('')
+    setClientQuery('')
+    setServiceQuery('')
     setOpen(true)
   }
 
@@ -118,6 +123,8 @@ export default function Bookings() {
     })
     setClientMode('existing')
     setNewClientName('')
+    setClientQuery('')
+    setServiceQuery('')
     setOpen(true)
   }
 
@@ -130,6 +137,20 @@ export default function Bookings() {
 
   const chosenServices = services.filter((s) => form.serviceIds.includes(s.id))
   const total = chosenServices.reduce((sum, s) => sum + Number(s.price || 0), 0)
+
+  const filteredClients = useMemo(() => {
+    const q = clientQuery.trim().toLowerCase()
+    if (!q) return clients
+    return clients.filter((c) => c.name.toLowerCase().includes(q) || (c.phone || '').includes(q))
+  }, [clients, clientQuery])
+
+  const filteredServices = useMemo(() => {
+    const q = serviceQuery.trim().toLowerCase()
+    if (!q) return services
+    return services.filter((s) => s.name.toLowerCase().includes(q))
+  }, [services, serviceQuery])
+
+  const canSubmit = clientMode === 'existing' ? !!form.clientId : newClientName.trim().length > 0
 
   const conflict = useMemo(() => {
     if (!form.date || !form.time) return null
@@ -399,22 +420,52 @@ export default function Bookings() {
               </button>
             </div>
             {clientMode === 'existing' ? (
-              <select
-                required
-                className="field-input"
-                value={form.clientId}
-                onChange={(e) => {
-                  const c = clients.find((c) => c.id === e.target.value)
-                  setForm({ ...form, clientId: e.target.value, clientName: c?.name || '' })
-                }}
-              >
-                <option value="">Оберіть клієнтку…</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              <div>
+                {form.clientId && (
+                  <p className="text-xs text-inkSoft mb-2">
+                    Обрано: <span className="text-ink font-medium">{form.clientName}</span>
+                  </p>
+                )}
+                <div className="relative mb-2">
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-inkSoft" />
+                  <input
+                    className="field-input pl-9"
+                    placeholder="Пошук за іменем або телефоном"
+                    value={clientQuery}
+                    onChange={(e) => setClientQuery(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  {filteredClients.length === 0 && (
+                    <p className="text-xs text-inkSoft px-1 py-2">Нікого не знайдено.</p>
+                  )}
+                  {filteredClients.map((c) => {
+                    const checked = form.clientId === c.id
+                    return (
+                      <button
+                        type="button"
+                        key={c.id}
+                        onClick={() => setForm({ ...form, clientId: c.id, clientName: c.name })}
+                        className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md border text-sm text-left ${
+                          checked ? 'border-wine bg-wine/5' : 'border-line'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                              checked ? 'bg-wine border-wine' : 'border-line'
+                            }`}
+                          >
+                            {checked && <Check size={10} className="text-cream" />}
+                          </span>
+                          <span className="truncate">{c.name}</span>
+                        </span>
+                        {c.phone && <span className="text-inkSoft text-xs shrink-0">{c.phone}</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
             ) : (
               <input
                 required
@@ -463,8 +514,22 @@ export default function Bookings() {
             {services.length === 0 && (
               <p className="text-xs text-inkSoft">Спочатку додай послуги у розділі «Послуги».</p>
             )}
+            {services.length > 0 && (
+              <div className="relative mb-2">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-inkSoft" />
+                <input
+                  className="field-input pl-9"
+                  placeholder="Пошук послуги"
+                  value={serviceQuery}
+                  onChange={(e) => setServiceQuery(e.target.value)}
+                />
+              </div>
+            )}
             <div className="space-y-1.5 max-h-48 overflow-y-auto">
-              {services.map((s) => {
+              {services.length > 0 && filteredServices.length === 0 && (
+                <p className="text-xs text-inkSoft px-1 py-2">Нічого не знайдено.</p>
+              )}
+              {filteredServices.map((s) => {
                 const checked = form.serviceIds.includes(s.id)
                 return (
                   <label
@@ -501,7 +566,7 @@ export default function Bookings() {
             />
           </div>
 
-          <button type="submit" disabled={!!conflict} className="btn-primary w-full">
+          <button type="submit" disabled={!!conflict || !canSubmit} className="btn-primary w-full">
             {editing ? 'Зберегти зміни' : 'Зберегти запис'} — {fmtMoney(total)}
           </button>
         </form>

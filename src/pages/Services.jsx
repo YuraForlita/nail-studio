@@ -55,7 +55,7 @@ export default function Services() {
         {sorted.map((s) => (
           <div key={s.id} className="card p-4 flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-medium truncate">{s.name}</p>
+              <p className="font-medium break-words">{s.name}</p>
               <p className="text-wine font-display text-lg mt-0.5">{fmtMoney(s.price)}</p>
               {s.duration && <p className="text-xs text-inkSoft mt-1">{s.duration} хв</p>}
             </div>
