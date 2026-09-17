@@ -54,10 +54,13 @@
   input, select, textarea {
     @apply outline-none;
   }
-  /* iOS Safari центрує текст у date/time-полях за замовчуванням — вирівнюємо як усі інші поля */
+  /* iOS Safari рендерить date/time-поля центровано і з іншою висотою за замовчуванням —
+     знімаємо нативний вигляд, щоб вони виглядали так само, як інші поля форми */
   input[type='date'],
   input[type='time'] {
     text-align: left;
+    -webkit-appearance: none;
+    appearance: none;
   }
   input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible {
     @apply ring-2 ring-wine/50 ring-offset-1 ring-offset-shell;
